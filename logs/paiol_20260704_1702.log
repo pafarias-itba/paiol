@@ -1,0 +1,142 @@
+================================================
+  PAIOL Daily Run — sábado,  4 de julio de 2026, 17:02:47 -03
+================================================
+
+📊 Cerrando posiciones del día anterior...
+
+📊 PAPER TRADING: Sin operaciones todavía
+
+
+🚀 Corriendo pipeline...
+/Users/paulafarias/Documents/PAIOL/paiol/scraper_sentiment.py:35: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:PAIOL-Pipeline:============================================================
+INFO:PAIOL-Pipeline:  PAIOL Pipeline — Inicio
+INFO:PAIOL-Pipeline:  Modo: DRY RUN
+INFO:PAIOL-Pipeline:  Sandbox IOL: True
+INFO:PAIOL-Pipeline:============================================================
+INFO:PAIOL-Pipeline:
+📰 PASO 1: Análisis de sentimiento
+INFO:PAIOL-Sentiment:=== PAIOL Sentiment Pipeline ===
+INFO:PAIOL-Sentiment:1. Scrapeando noticias...
+INFO:PAIOL-Sentiment:ambito_economia: 20 noticias
+INFO:PAIOL-Sentiment:ambito_finanzas: 20 noticias
+INFO:PAIOL-Sentiment:ambito_politica: 20 noticias
+INFO:PAIOL-Sentiment:cronista: 72 noticias
+INFO:PAIOL-Sentiment:infobae_economia: 0 noticias
+INFO:PAIOL-Sentiment:eleconomista_economia: 20 noticias
+INFO:PAIOL-Sentiment:eleconomista_finanzas: 20 noticias
+INFO:PAIOL-Sentiment:iprofesional: 28 noticias
+INFO:PAIOL-Sentiment:Total noticias únicas: 199
+INFO:PAIOL-Sentiment:Noticias relevantes al mercado: 107
+INFO:PAIOL-Sentiment:2. Analizando 107 noticias con Gemini...
+INFO:PAIOL-Sentiment:Análisis de sentimiento completado
+INFO:PAIOL-Sentiment:   Fecha: 2026-07-04
+INFO:PAIOL-Sentiment:   Dólar sentiment: 0.2
+INFO:PAIOL-Sentiment:   Riesgo país: 0.7
+INFO:PAIOL-Sentiment:   Eventos clave:
+INFO:PAIOL-Sentiment:     • BCRA compró u$s100 millones y las reservas subieron u$s233 millones.
+INFO:PAIOL-Sentiment:     • Riesgo país cayó a mínimos desde 2018, pero S&P Merval en dólares bajó.
+INFO:PAIOL-Sentiment:     • Dólar blue bajó y la brecha con el oficial cayó a mínimos de dos semanas.
+INFO:PAIOL-Sentiment:     • El mentor económico de Milei anticipó mayor dolarización y vinculó el futuro al respaldo político.
+INFO:PAIOL-Sentiment:     • Se conocieron detalles sobre la privatización de rutas nacionales.
+INFO:PAIOL-Pipeline:
+📊 PASO 2: Feature engineering
+INFO:PAIOL-Features:=== Generando features para todos los tickers ===
+INFO:PAIOL-Features:GGAL.BA: 83 días descargados (2026-03-06 → 2026-07-03)
+INFO:PAIOL-Features:GGAL features: RSI=56.6, MACD=176.1074, Vol5d=0.0194, Sent=0.10
+INFO:PAIOL-Features:YPFD.BA: 83 días descargados (2026-03-06 → 2026-07-03)
+INFO:PAIOL-Features:YPFD features: RSI=39.4, MACD=-1281.1888, Vol5d=0.0125, Sent=0.40
+INFO:PAIOL-Features:MELI.BA: 83 días descargados (2026-03-06 → 2026-07-03)
+INFO:PAIOL-Features:MELI features: RSI=75.7, MACD=541.6243, Vol5d=0.0116, Sent=0.00
+INFO:PAIOL-Features:PAMP.BA: 83 días descargados (2026-03-06 → 2026-07-03)
+INFO:PAIOL-Features:PAMP features: RSI=56.1, MACD=18.8715, Vol5d=0.0138, Sent=0.00
+INFO:PAIOL-Features:SPY: 82 días descargados (2026-03-06 → 2026-07-02)
+INFO:PAIOL-Features:SPY features: RSI=55.7, MACD=1.8509, Vol5d=0.0093, Sent=0.50
+INFO:PAIOL-Features:Features generados para 5/5 tickers
+INFO:PAIOL-Pipeline:
+🎯 PASO 3: Predicción
+INFO:PAIOL-Pipeline:Modelo cargado desde model/xgboost_model.json (XGBoost JSON)
+INFO:PAIOL-Pipeline:   GGAL: SUBE (COMPRAR) confianza=59.1%
+INFO:PAIOL-Pipeline:   YPFD: SUBE (COMPRAR) confianza=54.6%
+INFO:PAIOL-Pipeline:   MELI: SUBE (COMPRAR) confianza=41.5%
+INFO:PAIOL-Pipeline:   PAMP: SUBE (COMPRAR) confianza=58.8%
+INFO:PAIOL-Pipeline:   SPY: LATERAL (HOLD) confianza=70.3%
+INFO:PAIOL-Pipeline:
+💰 PASO 4: Ejecución de órdenes
+INFO:PAIOL-Pipeline:   DRY RUN — no se ejecutan órdenes
+INFO:PAIOL-Pipeline:   [DRY] GGAL: COMPRAR x10
+INFO:PAIOL-Pipeline:   [DRY] YPFD: COMPRAR x10
+INFO:PAIOL-Pipeline:   [DRY] MELI: COMPRAR x10
+INFO:PAIOL-Pipeline:   [DRY] PAMP: COMPRAR x10
+INFO:PAIOL-Pipeline:
+📧 PASO 5: Reporte
+INFO:PAIOL-Pipeline:   Reporte guardado en outputs/reporte_20260704_1702.txt
+INFO:PAIOL-Pipeline:   Resultados guardados en outputs/resultado_20260704_1702.json
+ERROR:PAIOL-Pipeline:Error enviando email: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials 5a478bee46e88-3113c88041fsm2920309eec.15 - gsmtp')
+INFO:PAIOL-Pipeline:
+✅ Pipeline completado en 11.4s
+============================================================
+  PAIOL — Reporte Diario  2026-07-04 17:02
+============================================================
+
+📊 SENTIMENT MACRO
+  Dólar:          0.2
+  Reservas:       0.6
+  Riesgo País:    0.7
+
+📰 EVENTOS CLAVE
+  • BCRA compró u$s100 millones y las reservas subieron u$s233 millones.
+  • Riesgo país cayó a mínimos desde 2018, pero S&P Merval en dólares bajó.
+  • Dólar blue bajó y la brecha con el oficial cayó a mínimos de dos semanas.
+  • El mentor económico de Milei anticipó mayor dolarización y vinculó el futuro al respaldo político.
+  • Se conocieron detalles sobre la privatización de rutas nacionales.
+
+🎯 PREDICCIONES
+  Ticker   Señal      Acción     Confianza  Ejecutada
+  -------------------------------------------------------
+  GGAL     SUBE       COMPRAR    59.1%      ❌ NO
+  YPFD     SUBE       COMPRAR    54.6%      ❌ NO
+  MELI     SUBE       COMPRAR    41.5%      ❌ NO
+  PAMP     SUBE       COMPRAR    58.8%      ❌ NO
+  SPY      LATERAL    HOLD       70.3%      ➖ N/A
+
+📈 DETALLE DE PROBABILIDADES
+  GGAL: ↓27.5%  →13.4%  ↑59.1%
+  YPFD: ↓33.8%  →11.6%  ↑54.6%
+  MELI: ↓35.9%  →22.6%  ↑41.5%
+  PAMP: ↓26.2%  →15.1%  ↑58.8%
+  SPY: ↓10.9%  →70.3%  ↑18.8%
+
+============================================================
+  PAIOL v0.1 | Sandbox: True
+============================================================
+
+📝 Registrando en paper trading: outputs/resultado_20260704_1702.json
+INFO:PAIOL-Position:PositionManager: capital=100,000 ARS, riesgo=2%/op, max/instrumento=30%, stop_loss=3%
+WARNING:PAIOL-Position:GGAL: sin cotización, saltando
+WARNING:PAIOL-Position:YPFD: sin cotización, saltando
+WARNING:PAIOL-Position:MELI: sin cotización, saltando
+WARNING:PAIOL-Position:PAMP: sin cotización, saltando
+WARNING:PAIOL-Position:SPY: sin cotización, saltando
+INFO:PAIOL-Position:
+Resumen: 0 ARS en compras, riesgo total 0 ARS (0.0% del capital)
+INFO:PAIOL-Paper:Registradas 0 posiciones para 2026-07-04
+
+✅ Posiciones registradas. Mañana corré: python paper_trading.py --cerrar
+
+📈 Reporte de performance:
+INFO:PAIOL-Paper:Historial cargado: 0 operaciones
+
+📊 PAPER TRADING: Sin operaciones todavía
+
+Sin operaciones cerradas.
+
+✅ PAIOL completado — sábado,  4 de julio de 2026, 17:03:09 -03

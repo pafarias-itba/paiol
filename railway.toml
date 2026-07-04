@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python run_daily_cloud.py"
+cronSchedule = "30 12 * * 1-5"
+# 12:30 UTC = 9:30 ART (Argentina, UTC-3)
+# Solo lunes a viernes
