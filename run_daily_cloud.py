@@ -112,6 +112,18 @@ def main():
         logger.error(f"Error generando reporte: {e}")
 
     logger.info("\n✅ PAIOL Daily Run completado")
+    
+    # PASO 5: Re-entrenamiento mensual (día 1 de cada mes)
+    if datetime.now().day == 1:
+        logger.info("\n🏋️ PASO 5: Re-entrenamiento mensual")
+        try:
+            from retrain import AutoRetrainer
+            ar = AutoRetrainer()
+            ar.run()
+        except Exception as e:
+            logger.error(f"Error en re-entrenamiento: {e}")
+    else:
+        logger.info(f"\n🏋️ PASO 5: Re-entrenamiento — próximo el día 1 del mes")
 
 
 if __name__ == "__main__":
