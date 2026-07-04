@@ -1,0 +1,32 @@
+{
+  "fecha": "2026-07-04",
+  "macro": {
+    "dolar_sentiment": 0.0,
+    "reservas_sentiment": 0.0,
+    "riesgo_pais_sentiment": 0.0,
+    "inflacion_sentiment": 0.0
+  },
+  "instrumentos": {
+    "GGAL": {
+      "sentimiento": 0.0,
+      "relevancia": 0.0
+    },
+    "YPFD": {
+      "sentimiento": 0.0,
+      "relevancia": 0.0
+    },
+    "MELI": {
+      "sentimiento": 0.0,
+      "relevancia": 0.0
+    },
+    "PAMP": {
+      "sentimiento": 0.0,
+      "relevancia": 0.0
+    },
+    "SPY": {
+      "sentimiento": 0.0,
+      "relevancia": 0.0
+    }
+  },
+  "eventos_clave": []
+}

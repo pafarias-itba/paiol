@@ -1,0 +1,7 @@
+requests>=2.31
+yfinance>=0.2.31
+feedparser>=6.0
+google-generativeai>=0.5
+xgboost>=2.0
+numpy>=1.24
+pandas>=2.0
