@@ -1,0 +1,28 @@
+============================================================
+  PAIOL — Reporte Diario  2026-07-04 16:23
+============================================================
+
+📊 SENTIMENT MACRO
+  Dólar:          0.0
+  Reservas:       0.0
+  Riesgo País:    0.0
+
+🎯 PREDICCIONES
+  Ticker   Señal      Acción     Confianza  Ejecutada
+  -------------------------------------------------------
+  GGAL     SUBE       COMPRAR    52.3%      ❌ NO
+  YPFD     BAJA       VENDER     56.7%      ❌ NO
+  MELI     SUBE       COMPRAR    38.6%      ❌ NO
+  PAMP     SUBE       COMPRAR    41.1%      ❌ NO
+  SPY      LATERAL    HOLD       80.1%      ➖ N/A
+
+📈 DETALLE DE PROBABILIDADES
+  GGAL: ↓34.0%  →13.7%  ↑52.3%
+  YPFD: ↓56.7%  →9.9%  ↑33.4%
+  MELI: ↓32.2%  →29.2%  ↑38.6%
+  PAMP: ↓39.2%  →19.7%  ↑41.1%
+  SPY: ↓10.9%  →80.1%  ↑9.0%
+
+============================================================
+  PAIOL v0.1 | Sandbox: True
+============================================================

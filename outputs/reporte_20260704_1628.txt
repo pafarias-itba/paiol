@@ -1,0 +1,35 @@
+============================================================
+  PAIOL — Reporte Diario  2026-07-04 16:28
+============================================================
+
+📊 SENTIMENT MACRO
+  Dólar:          0.2
+  Reservas:       0.7
+  Riesgo País:    0.6
+
+📰 EVENTOS CLAVE
+  • El BCRA volvió a comprar fuerza, sumando u$s100 millones y reservas brutas aumentaron u$s233 millones.
+  • El riesgo país cayó a mínimos desde 2018, aunque el S&P Merval en dólares tuvo un desempeño mixto.
+  • El dólar blue bajó y la brecha con el oficial se comprimió, mientras el dólar oficial encadenó su tercera semana consecutiva al alza.
+  • El mentor económico de Milei anticipó una mayor dolarización y vinculó el futuro económico al respaldo político.
+  • Se avanzó en la privatización de rutas nacionales y el lunes se conocerán las ofertas.
+
+🎯 PREDICCIONES
+  Ticker   Señal      Acción     Confianza  Ejecutada
+  -------------------------------------------------------
+  GGAL     SUBE       COMPRAR    57.7%      ❌ NO
+  YPFD     SUBE       COMPRAR    54.0%      ❌ NO
+  MELI     SUBE       COMPRAR    41.4%      ❌ NO
+  PAMP     SUBE       COMPRAR    58.3%      ❌ NO
+  SPY      LATERAL    HOLD       71.2%      ➖ N/A
+
+📈 DETALLE DE PROBABILIDADES
+  GGAL: ↓28.5%  →13.8%  ↑57.7%
+  YPFD: ↓33.5%  →12.5%  ↑54.0%
+  MELI: ↓36.2%  →22.3%  ↑41.4%
+  PAMP: ↓26.3%  →15.4%  ↑58.3%
+  SPY: ↓10.9%  →71.2%  ↑17.9%
+
+============================================================
+  PAIOL v0.1 | Sandbox: True
+============================================================

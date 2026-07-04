@@ -1,0 +1,105 @@
+{
+  "timestamp": "20260704_1628",
+  "sentiment": {
+    "fecha": "2024-07-04",
+    "macro": {
+      "dolar_sentiment": 0.2,
+      "reservas_sentiment": 0.7,
+      "riesgo_pais_sentiment": 0.6,
+      "inflacion_sentiment": 0.3
+    },
+    "instrumentos": {
+      "GGAL": {
+        "sentimiento": 0.1,
+        "relevancia": 0.1
+      },
+      "YPFD": {
+        "sentimiento": 0.3,
+        "relevancia": 0.2
+      },
+      "MELI": {
+        "sentimiento": 0.0,
+        "relevancia": 0.0
+      },
+      "PAMP": {
+        "sentimiento": 0.0,
+        "relevancia": 0.0
+      },
+      "SPY": {
+        "sentimiento": 0.5,
+        "relevancia": 0.4
+      }
+    },
+    "eventos_clave": [
+      "El BCRA volvió a comprar fuerza, sumando u$s100 millones y reservas brutas aumentaron u$s233 millones.",
+      "El riesgo país cayó a mínimos desde 2018, aunque el S&P Merval en dólares tuvo un desempeño mixto.",
+      "El dólar blue bajó y la brecha con el oficial se comprimió, mientras el dólar oficial encadenó su tercera semana consecutiva al alza.",
+      "El mentor económico de Milei anticipó una mayor dolarización y vinculó el futuro económico al respaldo político.",
+      "Se avanzó en la privatización de rutas nacionales y el lunes se conocerán las ofertas."
+    ]
+  },
+  "predicciones": {
+    "GGAL": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.285,
+        "LATERAL": 0.1379,
+        "SUBE": 0.5771
+      },
+      "confianza": 0.5771
+    },
+    "YPFD": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.3349,
+        "LATERAL": 0.1247,
+        "SUBE": 0.5404
+      },
+      "confianza": 0.5404
+    },
+    "MELI": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.3625,
+        "LATERAL": 0.223,
+        "SUBE": 0.4145
+      },
+      "confianza": 0.4145
+    },
+    "PAMP": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.263,
+        "LATERAL": 0.1536,
+        "SUBE": 0.5834
+      },
+      "confianza": 0.5834
+    },
+    "SPY": {
+      "prediccion": 1,
+      "label": "LATERAL",
+      "accion": "HOLD",
+      "probabilidades": {
+        "BAJA": 0.1093,
+        "LATERAL": 0.7115,
+        "SUBE": 0.1792
+      },
+      "confianza": 0.7115
+    }
+  },
+  "ordenes": {
+    "GGAL": "None",
+    "YPFD": "None",
+    "MELI": "None",
+    "PAMP": "None",
+    "SPY": "None"
+  }
+}

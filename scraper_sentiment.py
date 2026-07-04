@@ -29,6 +29,9 @@ from typing import Optional
 from dataclasses import dataclass, field
 
 import feedparser
+import ssl
+import certifi
+os.environ["SSL_CERT_FILE"] = certifi.where()
 import google.generativeai as genai
 
 logging.basicConfig(level=logging.INFO)
@@ -140,7 +143,10 @@ class RSSscraper:
 
     def _parse_feed(self, nombre: str, url: str) -> list[Noticia]:
         """Parsea un feed RSS individual."""
-        feed = feedparser.parse(url)
+        feed = feedparser.parse(
+            url,
+            agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        )
         noticias = []
 
         for entry in feed.entries:
@@ -243,7 +249,7 @@ class GeminiSentiment:
             )
 
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
     def analizar(self, noticias: list[Noticia]) -> dict:
         """

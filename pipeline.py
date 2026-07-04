@@ -42,6 +42,9 @@ from scraper_sentiment import PaiolSentiment
 from features import PaiolFeatures, FEATURE_COLS, TICKERS
 from iol_client import IOLClient
 
+from dotenv import load_dotenv
+load_dotenv()
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -159,7 +162,7 @@ def predecir(model: xgb.XGBClassifier, features: pd.Series) -> dict:
             "confianza": 0.5  # probabilidad de la clase ganadora
         }
     """
-    X = features[FEATURE_COLS].values.reshape(1, -1)
+    X = features[FEATURE_COLS].astype(float).values.reshape(1, -1)
     X_df = pd.DataFrame(X, columns=FEATURE_COLS)
 
     pred = model.predict(X_df)[0]

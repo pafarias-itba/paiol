@@ -1,0 +1,99 @@
+{
+  "timestamp": "20260704_1623",
+  "sentiment": {
+    "fecha": "2026-07-04",
+    "macro": {
+      "dolar_sentiment": 0.0,
+      "reservas_sentiment": 0.0,
+      "riesgo_pais_sentiment": 0.0,
+      "inflacion_sentiment": 0.0
+    },
+    "instrumentos": {
+      "GGAL": {
+        "sentimiento": 0.0,
+        "relevancia": 0.0
+      },
+      "YPFD": {
+        "sentimiento": 0.0,
+        "relevancia": 0.0
+      },
+      "MELI": {
+        "sentimiento": 0.0,
+        "relevancia": 0.0
+      },
+      "PAMP": {
+        "sentimiento": 0.0,
+        "relevancia": 0.0
+      },
+      "SPY": {
+        "sentimiento": 0.0,
+        "relevancia": 0.0
+      }
+    },
+    "eventos_clave": []
+  },
+  "predicciones": {
+    "GGAL": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.3398,
+        "LATERAL": 0.1373,
+        "SUBE": 0.5229
+      },
+      "confianza": 0.5229
+    },
+    "YPFD": {
+      "prediccion": 0,
+      "label": "BAJA",
+      "accion": "VENDER",
+      "probabilidades": {
+        "BAJA": 0.5668,
+        "LATERAL": 0.0992,
+        "SUBE": 0.334
+      },
+      "confianza": 0.5668
+    },
+    "MELI": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.3216,
+        "LATERAL": 0.292,
+        "SUBE": 0.3864
+      },
+      "confianza": 0.3864
+    },
+    "PAMP": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.392,
+        "LATERAL": 0.1967,
+        "SUBE": 0.4113
+      },
+      "confianza": 0.4113
+    },
+    "SPY": {
+      "prediccion": 1,
+      "label": "LATERAL",
+      "accion": "HOLD",
+      "probabilidades": {
+        "BAJA": 0.1095,
+        "LATERAL": 0.8006,
+        "SUBE": 0.0899
+      },
+      "confianza": 0.8006
+    }
+  },
+  "ordenes": {
+    "GGAL": "None",
+    "YPFD": "None",
+    "MELI": "None",
+    "PAMP": "None",
+    "SPY": "None"
+  }
+}
