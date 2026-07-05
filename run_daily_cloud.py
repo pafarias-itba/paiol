@@ -34,10 +34,10 @@ def main():
     logger.info("=" * 60)
 
     # Verificar día de semana (no correr sábado/domingo)
-    # dia = datetime.now().weekday()
-    # if dia >= 5:
-    #     logger.info("Fin de semana — no se opera. Saliendo.")
-    #     return
+    dia = datetime.now().weekday()
+    if dia >= 5:
+        logger.info("Fin de semana — no se opera. Saliendo.")
+        return
 
     # Conectar a Supabase
     try:
