@@ -32,7 +32,10 @@ import feedparser
 import ssl
 import certifi
 os.environ["SSL_CERT_FILE"] = certifi.where()
-import google.generativeai as genai
+try:
+    from google import genai
+except ImportError:
+    import google.generativeai as genai
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("PAIOL-Sentiment")
