@@ -1,0 +1,105 @@
+{
+  "timestamp": "20260705_1007",
+  "sentiment": {
+    "fecha": "2026-07-05",
+    "macro": {
+      "dolar_sentiment": -0.2,
+      "reservas_sentiment": 0.7,
+      "riesgo_pais_sentiment": 0.6,
+      "inflacion_sentiment": 0.3
+    },
+    "instrumentos": {
+      "GGAL": {
+        "sentimiento": 0.1,
+        "relevancia": 0.1
+      },
+      "YPFD": {
+        "sentimiento": -0.3,
+        "relevancia": 0.4
+      },
+      "MELI": {
+        "sentimiento": 0.2,
+        "relevancia": 0.3
+      },
+      "PAMP": {
+        "sentimiento": 0.1,
+        "relevancia": 0.1
+      },
+      "SPY": {
+        "sentimiento": 0.5,
+        "relevancia": 0.7
+      }
+    },
+    "eventos_clave": [
+      "Riesgo país en mínimos desde 2018, pero S&P Merval en dólares cae.",
+      "BCRA compró US$100 millones y reservas suben US$233 millones.",
+      "Dólar blue bajó por primera vez en cuatro ruedas, achicando brecha.",
+      "Gobierno avanza con reforma de Carta Orgánica del BCRA.",
+      "Especialista de Wall Street advierte sobre el valor del dólar y pide 'tolerar un punto de cambio más alto'."
+    ]
+  },
+  "predicciones": {
+    "GGAL": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.2756,
+        "LATERAL": 0.1358,
+        "SUBE": 0.5886
+      },
+      "confianza": 0.5886
+    },
+    "YPFD": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.2162,
+        "LATERAL": 0.1503,
+        "SUBE": 0.6335
+      },
+      "confianza": 0.6335
+    },
+    "MELI": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.1961,
+        "LATERAL": 0.314,
+        "SUBE": 0.4899
+      },
+      "confianza": 0.4899
+    },
+    "PAMP": {
+      "prediccion": 2,
+      "label": "SUBE",
+      "accion": "COMPRAR",
+      "probabilidades": {
+        "BAJA": 0.301,
+        "LATERAL": 0.1815,
+        "SUBE": 0.5176
+      },
+      "confianza": 0.5176
+    },
+    "SPY": {
+      "prediccion": 1,
+      "label": "LATERAL",
+      "accion": "HOLD",
+      "probabilidades": {
+        "BAJA": 0.1998,
+        "LATERAL": 0.5931,
+        "SUBE": 0.2071
+      },
+      "confianza": 0.5931
+    }
+  },
+  "ordenes": {
+    "GGAL": "None",
+    "YPFD": "None",
+    "MELI": "None",
+    "PAMP": "None",
+    "SPY": "None"
+  }
+}
