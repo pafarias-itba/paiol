@@ -173,7 +173,8 @@ class PaiolDB:
     def _upsert(self, table: str, data: dict, on_conflict: str = "") -> bool:
         """Inserta o actualiza una fila."""
         url = f"{self.url}/rest/v1/{table}"
-        headers = {**self.headers, "Prefer": "resolution=merge-duplicates,return=minimal"}
+        headers = {**self.headers, "Prefer": "return=minimal,resolution=merge-duplicates"}
+        headers["on_conflict"] = on_conflict
         try:
             resp = requests.post(url, headers=headers, json=data)
             if resp.status_code in (200, 201, 204):
