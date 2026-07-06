@@ -174,10 +174,9 @@ class PaiolDB:
         """Inserta o actualiza una fila."""
         url = f"{self.url}/rest/v1/{table}"
         headers = {**self.headers, "Prefer": "return=minimal,resolution=merge-duplicates"}
-        headers["on_conflict"] = on_conflict
         try:
             resp = requests.post(url, headers=headers, json=data)
-            if resp.status_code in (200, 201, 204):
+            if resp.status_code in (200, 201, 204, 409):
                 return True
             else:
                 logger.error(f"DB upsert {table}: {resp.status_code} {resp.text}")
