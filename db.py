@@ -174,9 +174,10 @@ class PaiolDB:
         """Inserta o actualiza una fila."""
         url = f"{self.url}/rest/v1/{table}"
         headers = {**self.headers, "Prefer": "return=minimal,resolution=merge-duplicates"}
+        params = {"on_conflict": on_conflict} if on_conflict else None
         try:
-            resp = requests.post(url, headers=headers, json=data)
-            if resp.status_code in (200, 201, 204, 409):
+            resp = requests.post(url, headers=headers, params=params, json=data)
+            if resp.status_code in (200, 201, 204):
                 return True
             else:
                 logger.error(f"DB upsert {table}: {resp.status_code} {resp.text}")
@@ -236,7 +237,7 @@ class PaiolDB:
             "prob_baja": probabilidades.get("BAJA", 0),
             "prob_lateral": probabilidades.get("LATERAL", 0),
             "prob_sube": probabilidades.get("SUBE", 0),
-        })
+        }, on_conflict="fecha,ticker")
 
     def guardar_predicciones_batch(self, predicciones: dict, fecha: str = None):
         """Guarda todas las predicciones del día."""
@@ -268,7 +269,7 @@ class PaiolDB:
             "eventos_clave": json.dumps(sentiment.get("eventos_clave", [])),
             "instrumentos": json.dumps(sentiment.get("instrumentos", {})),
             "raw_response": json.dumps(sentiment),
-        })
+        }, on_conflict="fecha")
 
     def get_sentiment_historico(self, dias: int = 30) -> list:
         """Obtiene el sentiment de los últimos N días."""
@@ -351,7 +352,7 @@ class PaiolDB:
             "low_price": low,
             "close_price": close,
             "volume": volume,
-        })
+        }, on_conflict="fecha,ticker")
 
     def guardar_cotizaciones_batch(self, cotizaciones: dict, fecha: str = None):
         """Guarda cotizaciones de todos los tickers."""
