@@ -60,10 +60,14 @@ def cierres_para_fecha(hist: pd.DataFrame, fecha: str):
     """Devuelve (precio_pred, precio_actual) para una predicción en `fecha`.
 
     precio_pred   = último cierre <= fecha
-    precio_actual = primer cierre estrictamente posterior a esa fecha de cierre
+    precio_actual = cierre del día hábil siguiente, SOLO si ese día ya cerró
+                    (es estrictamente anterior a hoy). Si el día siguiente es
+                    hoy o futuro, devuelve None para no evaluar con un precio
+                    intradiario que todavía se mueve.
     Cualquiera de los dos puede ser None si no hay dato.
     """
     f = pd.Timestamp(fecha)
+    hoy = pd.Timestamp.today().normalize()
 
     hasta_fecha = hist.loc[:f]
     if hasta_fecha.empty:
@@ -72,7 +76,10 @@ def cierres_para_fecha(hist: pd.DataFrame, fecha: str):
     fecha_cierre = hasta_fecha.index[-1]
 
     posteriores = hist.loc[hist.index > fecha_cierre]
-    precio_actual = float(posteriores["Close"].iloc[0]) if not posteriores.empty else None
+    if not posteriores.empty and posteriores.index[0].normalize() < hoy:
+        precio_actual = float(posteriores["Close"].iloc[0])
+    else:
+        precio_actual = None
 
     return precio_pred, precio_actual
 
@@ -81,13 +88,23 @@ def main():
     parser = argparse.ArgumentParser(description="Backfill de accuracy de predicciones")
     parser.add_argument("--dry-run", action="store_true",
                         help="Mostrar qué haría sin escribir en la DB")
+    parser.add_argument("--reset", action="store_true",
+                        help="Limpiar (NULL) acierto/senal_real/retorno_real de las "
+                             "filas ya evaluadas, para recomputarlas contra cierres finales")
     args = parser.parse_args()
 
     load_dotenv()
     db = PaiolDB()
 
+    if args.reset:
+        ok = db._patch("predicciones", {"acierto": "not.is.null"},
+                       {"acierto": None, "senal_real": None, "retorno_real": None})
+        logger.info("Reset de filas evaluadas: " + ("OK" if ok else "FALLÓ"))
+        return
+
+    # Re-ejecutable: toma todo lo que aún no tiene acierto resuelto
     pendientes = db._get("predicciones", {
-        "precio_pred": "is.null",
+        "acierto": "is.null",
         "select": "id,fecha,ticker,senal",
         "order": "fecha.asc",
     })
