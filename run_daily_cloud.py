@@ -98,6 +98,37 @@ def main():
         if db:
             db.log_pipeline("cerrar_posiciones", "ERROR", str(e))
 
+    # ---- PASO 1.5: EVALUAR ACIERTO DE PREDICCIONES ANTERIORES ----
+    logger.info("\n🎯 PASO 1.5: Evaluando aciertos de predicciones anteriores...")
+    try:
+        if db:
+            from features import TICKERS, UMBRAL
+
+            # Precio de cierre actual para cada ticker con predicción pendiente
+            precios_actuales = {}
+            for ticker, config in TICKERS.items():
+                try:
+                    df = yf.download(config["yfinance"], period="5d", progress=False)
+                    if not df.empty:
+                        precios_actuales[ticker] = float(df["Close"].iloc[-1])
+                except Exception:
+                    pass
+
+            res = db.evaluar_predicciones_pendientes(precios_actuales, umbral=UMBRAL)
+            if res["evaluadas"]:
+                logger.info(
+                    f"  Evaluadas {res['evaluadas']} predicciones — "
+                    f"aciertos {res['aciertos']} ({res['accuracy']:.1%})"
+                )
+                db.log_pipeline("evaluar_predicciones", "OK",
+                                f"{res['aciertos']}/{res['evaluadas']} aciertos")
+            else:
+                logger.info("  Sin predicciones pendientes de evaluar")
+    except Exception as e:
+        logger.error(f"  Error evaluando predicciones: {e}")
+        if db:
+            db.log_pipeline("evaluar_predicciones", "ERROR", str(e))
+
     # ---- PASO 2: CORRER PIPELINE ----
     logger.info("\n🚀 PASO 2: Corriendo pipeline...")
     try:
@@ -130,11 +161,7 @@ def main():
                 db.guardar_sentiment(sentiment)
                 logger.info("  ✅ Sentiment guardado")
 
-                # Guardar predicciones
-                db.guardar_predicciones_batch(predicciones)
-                logger.info("  ✅ Predicciones guardadas")
-
-                # Obtener cotizaciones y guardar operaciones
+                # Obtener cotizaciones actuales (precio de referencia de la predicción)
                 from features import TICKERS
                 from position_sizing import PositionManager
 
@@ -150,6 +177,10 @@ def main():
                                 }
                         except:
                             pass
+
+                # Guardar predicciones con su precio de referencia
+                db.guardar_predicciones_batch(predicciones, cotizaciones=cotizaciones)
+                logger.info("  ✅ Predicciones guardadas")
 
                 # Position sizing
                 pm = PositionManager(capital_total=100_000, riesgo_pct=0.02)
@@ -180,6 +211,15 @@ def main():
     logger.info("\n📈 PASO 4: Reporte")
     try:
         if db:
+            # Accuracy del modelo (predicción de clase, incluye HOLD/LATERAL)
+            acc = db.get_accuracy_modelo()
+            if "mensaje" not in acc:
+                logger.info(f"  Accuracy modelo: {acc['accuracy']:.1%} "
+                            f"({acc['aciertos']}/{acc['total_evaluadas']})")
+            else:
+                logger.info(f"  {acc['mensaje']}")
+
+            # Performance del paper trading (rentabilidad de las operaciones)
             metricas = db.get_metricas_paper_trading()
             if "mensaje" not in metricas:
                 logger.info(f"  Operaciones: {metricas['total_operaciones']}")

@@ -50,6 +50,10 @@ CREATE TABLE IF NOT EXISTS predicciones (
     prob_baja FLOAT,
     prob_lateral FLOAT,
     prob_sube FLOAT,
+    precio_pred FLOAT,               -- cierre de referencia al momento de predecir
+    retorno_real FLOAT,             -- retorno realizado hasta el cierre siguiente
+    senal_real INTEGER,             -- clase realizada (0/1/2) con el mismo umbral del modelo
+    acierto BOOLEAN,                -- senal == senal_real (NULL = aún sin evaluar)
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(fecha, ticker)
 );
@@ -126,6 +130,12 @@ CREATE TABLE IF NOT EXISTS pipeline_logs (
     duracion_seg FLOAT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migraciones para tablas ya existentes (idempotentes)
+ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS precio_pred FLOAT;
+ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS retorno_real FLOAT;
+ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS senal_real INTEGER;
+ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS acierto BOOLEAN;
 
 -- Índices para queries frecuentes
 CREATE INDEX IF NOT EXISTS idx_predicciones_fecha ON predicciones(fecha);
@@ -221,14 +231,19 @@ class PaiolDB:
     # ================================================================
 
     def guardar_prediccion(self, ticker: str, senal: int, confianza: float,
-                           probabilidades: dict, fecha: str = None):
-        """Guarda una predicción del modelo."""
+                           probabilidades: dict, fecha: str = None,
+                           precio: float = None):
+        """Guarda una predicción del modelo.
+
+        precio: cierre de referencia al momento de predecir. Se usa después
+        para evaluar el acierto contra el cierre del día siguiente.
+        """
         if not fecha:
             fecha = datetime.now().strftime("%Y-%m-%d")
 
         labels = {0: "VENDER", 1: "HOLD", 2: "COMPRAR"}
 
-        return self._upsert("predicciones", {
+        row = {
             "fecha": fecha,
             "ticker": ticker,
             "senal": senal,
@@ -237,10 +252,20 @@ class PaiolDB:
             "prob_baja": probabilidades.get("BAJA", 0),
             "prob_lateral": probabilidades.get("LATERAL", 0),
             "prob_sube": probabilidades.get("SUBE", 0),
-        }, on_conflict="fecha,ticker")
+        }
+        if precio:
+            row["precio_pred"] = precio
 
-    def guardar_predicciones_batch(self, predicciones: dict, fecha: str = None):
-        """Guarda todas las predicciones del día."""
+        return self._upsert("predicciones", row, on_conflict="fecha,ticker")
+
+    def guardar_predicciones_batch(self, predicciones: dict, fecha: str = None,
+                                   cotizaciones: dict = None):
+        """Guarda todas las predicciones del día.
+
+        Si se pasa `cotizaciones` ({ticker: {"ultimoPrecio": ...}}), guarda el
+        precio de referencia de cada ticker para poder evaluar el acierto luego.
+        """
+        cotizaciones = cotizaciones or {}
         for ticker, pred in predicciones.items():
             self.guardar_prediccion(
                 ticker=ticker,
@@ -248,8 +273,67 @@ class PaiolDB:
                 confianza=pred["confianza"],
                 probabilidades=pred.get("probabilidades", {}),
                 fecha=fecha,
+                precio=cotizaciones.get(ticker, {}).get("ultimoPrecio"),
             )
         logger.info(f"DB: {len(predicciones)} predicciones guardadas")
+
+    def evaluar_predicciones_pendientes(self, precios_actuales: dict,
+                                        umbral: float = 0.01,
+                                        fecha_hoy: str = None) -> dict:
+        """Evalúa el acierto de predicciones anteriores aún sin resolver.
+
+        Para cada predicción con precio de referencia y sin evaluar (acierto NULL),
+        calcula el retorno realizado contra el precio actual, lo clasifica con el
+        mismo umbral que usa el modelo (BAJA/LATERAL/SUBE) y marca si acertó.
+
+        Args:
+            precios_actuales: {ticker: precio_cierre_actual}
+            umbral: banda neutral para LATERAL (default 0.01 = ±1%, igual al modelo)
+            fecha_hoy: solo evalúa predicciones anteriores a esta fecha (evita
+                       evaluar las de hoy contra su propio precio). Default: hoy.
+
+        Returns:
+            {"evaluadas": int, "aciertos": int, "accuracy": float}
+        """
+        if not fecha_hoy:
+            fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+
+        pendientes = self._get("predicciones", {
+            "acierto": "is.null",
+            "precio_pred": "not.is.null",
+            "fecha": f"lt.{fecha_hoy}",
+            "select": "id,ticker,senal,precio_pred",
+            "order": "fecha.asc",
+        })
+
+        evaluadas = 0
+        aciertos = 0
+        for pred in pendientes:
+            ticker = pred["ticker"]
+            precio_pred = pred.get("precio_pred")
+            precio_actual = precios_actuales.get(ticker)
+            if not precio_pred or not precio_actual:
+                continue
+
+            retorno = precio_actual / precio_pred - 1
+            if retorno < -umbral:
+                senal_real = 0
+            elif retorno > umbral:
+                senal_real = 2
+            else:
+                senal_real = 1
+
+            acierto = (pred["senal"] == senal_real)
+            self._patch("predicciones", {"id": f"eq.{pred['id']}"}, {
+                "retorno_real": round(retorno, 6),
+                "senal_real": senal_real,
+                "acierto": acierto,
+            })
+            evaluadas += 1
+            aciertos += int(acierto)
+
+        accuracy = aciertos / evaluadas if evaluadas else 0.0
+        return {"evaluadas": evaluadas, "aciertos": aciertos, "accuracy": accuracy}
 
     # ================================================================
     # SENTIMENT
@@ -408,6 +492,25 @@ class PaiolDB:
     # ================================================================
     # MÉTRICAS AGREGADAS
     # ================================================================
+
+    def get_accuracy_modelo(self, limit: int = 1000) -> dict:
+        """Accuracy del modelo sobre predicciones ya evaluadas (todas las clases)."""
+        preds = self._get("predicciones", {
+            "acierto": "not.is.null",
+            "select": "acierto",
+            "order": "fecha.desc",
+            "limit": limit,
+        })
+        if not preds:
+            return {"mensaje": "Sin predicciones evaluadas"}
+
+        total = len(preds)
+        aciertos = sum(1 for p in preds if p.get("acierto"))
+        return {
+            "total_evaluadas": total,
+            "aciertos": aciertos,
+            "accuracy": round(aciertos / total, 4),
+        }
 
     def get_metricas_paper_trading(self) -> dict:
         """Calcula métricas de performance desde la DB."""
