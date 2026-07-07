@@ -143,7 +143,7 @@ def main():
                     config = TICKERS.get(ticker)
                     if config:
                         try:
-                            df = yf.download(config["yfinance"], period="1d", progress=False)
+                            df = yf.download(config["yfinance"], period="5d", progress=False)
                             if not df.empty:
                                 cotizaciones[ticker] = {
                                     "ultimoPrecio": float(df["Close"].iloc[-1])
