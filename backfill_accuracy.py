@@ -3,17 +3,19 @@ PAIOL — Backfill de accuracy para predicciones viejas
 
 Las predicciones guardadas antes de agregar la columna `precio_pred` quedaron
 sin precio de referencia, así que el PASO 1.5 del job las saltea. Este script
-las recupera de una sola vez usando el histórico de yfinance:
+las recupera de una sola vez usando el histórico de yfinance.
 
-  - precio_pred     = cierre del día de la predicción (`fecha`)
-  - precio_actual   = cierre del día hábil siguiente
+El job corre 9:30 ART (pre-mercado), así que una predicción con `fecha=D` se
+calculó con la barra de D-1 y predice el movimiento D-1 → D:
+
+  - precio_pred     = cierre del día hábil ANTERIOR a `fecha` (barra del modelo)
+  - precio_actual   = cierre EN `fecha`
   - retorno_real    = precio_actual / precio_pred - 1
   - senal_real      = clase realizada con el mismo UMBRAL del modelo
   - acierto         = senal == senal_real
 
-Es idempotente: solo toca filas con `precio_pred` NULL. Si el día siguiente
-todavía no cerró, guarda solo `precio_pred` y deja que el PASO 1.5 del job
-termine de evaluarla mañana.
+Re-ejecutable: toma filas con `acierto` NULL. Si `fecha` todavía no cerró
+(es hoy), guarda solo `precio_pred` y la deja parcial para más adelante.
 
 Uso:
     python3 backfill_accuracy.py           # aplica los cambios
@@ -59,25 +61,28 @@ def descargar_historico(symbol: str, fecha_min: str) -> pd.DataFrame:
 def cierres_para_fecha(hist: pd.DataFrame, fecha: str):
     """Devuelve (precio_pred, precio_actual) para una predicción en `fecha`.
 
-    precio_pred   = último cierre <= fecha
-    precio_actual = cierre del día hábil siguiente, SOLO si ese día ya cerró
-                    (es estrictamente anterior a hoy). Si el día siguiente es
-                    hoy o futuro, devuelve None para no evaluar con un precio
-                    intradiario que todavía se mueve.
+    El job corre 9:30 ART (pre-mercado), así que una predicción con `fecha=D`
+    se calculó con la barra de D-1 y predice el movimiento D-1 → D. Por eso:
+
+    precio_pred   = cierre del día hábil ANTERIOR a fecha (la barra que usó el
+                    modelo)
+    precio_actual = cierre EN fecha, SOLO si fecha ya cerró (es anterior a hoy);
+                    si fecha es hoy/futuro devuelve None y la fila queda parcial.
     Cualquiera de los dos puede ser None si no hay dato.
     """
-    f = pd.Timestamp(fecha)
+    f = pd.Timestamp(fecha).normalize()
     hoy = pd.Timestamp.today().normalize()
 
-    hasta_fecha = hist.loc[:f]
-    if hasta_fecha.empty:
+    # Referencia = último cierre estrictamente anterior a fecha (D-1)
+    antes = hist.loc[hist.index.normalize() < f]
+    if antes.empty:
         return None, None
-    precio_pred = float(hasta_fecha["Close"].iloc[-1])
-    fecha_cierre = hasta_fecha.index[-1]
+    precio_pred = float(antes["Close"].iloc[-1])
 
-    posteriores = hist.loc[hist.index > fecha_cierre]
-    if not posteriores.empty and posteriores.index[0].normalize() < hoy:
-        precio_actual = float(posteriores["Close"].iloc[0])
+    # Target = cierre en fecha (D), solo si ese día ya cerró
+    en_fecha = hist.loc[hist.index.normalize() == f]
+    if not en_fecha.empty and f < hoy:
+        precio_actual = float(en_fecha["Close"].iloc[-1])
     else:
         precio_actual = None
 
