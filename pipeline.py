@@ -270,7 +270,10 @@ def enviar_email(reporte: str):
     msg.attach(MIMEText(reporte, "plain"))
 
     try:
-        with smtplib.SMTP(Config.EMAIL_SMTP_HOST, Config.EMAIL_SMTP_PORT) as server:
+        # timeout corto: muchos hosts cloud bloquean SMTP saliente y sin esto
+        # el envío cuelga el job ~2 min antes de fallar
+        with smtplib.SMTP(Config.EMAIL_SMTP_HOST, Config.EMAIL_SMTP_PORT,
+                          timeout=15) as server:
             server.starttls()
             server.login(Config.EMAIL_FROM, Config.EMAIL_PASSWORD)
             server.send_message(msg)

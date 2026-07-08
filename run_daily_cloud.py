@@ -13,6 +13,7 @@ En Railway se programa como cron job a las 9:30 ART (12:30 UTC).
 import os
 import sys
 import json
+import time
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +26,39 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("PAIOL-Cloud")
+
+
+# Caché de último cierre por ticker, para toda la corrida.
+# Antes cada paso (1, 1.5, 3) descargaba los mismos precios por separado:
+# ~15 llamadas a yfinance en 2 min → Yahoo devolvía vacío (rate-limit) y los
+# tickers quedaban "sin cotización". Ahora se descarga una vez y se reusa.
+_precio_cache: dict = {}
+
+
+def precio_cierre(ticker_yf: str, reintentos: int = 3, espera: float = 3.0):
+    """Último cierre de yfinance, cacheado por corrida y con reintentos.
+
+    Devuelve float o None. Solo cachea resultados exitosos: si falló, un paso
+    posterior puede reintentar (útil porque entre pasos pasa >1 min y el
+    rate-limit suele haberse reseteado).
+    """
+    if _precio_cache.get(ticker_yf) is not None:
+        return _precio_cache[ticker_yf]
+
+    for intento in range(reintentos):
+        try:
+            df = yf.download(ticker_yf, period="5d", progress=False)
+            if not df.empty:
+                precio = float(df["Close"].iloc[-1])
+                _precio_cache[ticker_yf] = precio
+                return precio
+        except Exception as e:
+            logger.warning(f"  yfinance {ticker_yf} intento {intento + 1}: {e}")
+        if intento < reintentos - 1:
+            time.sleep(espera)
+
+    logger.warning(f"  yfinance {ticker_yf}: sin dato tras {reintentos} intentos")
+    return None
 
 
 def main():
@@ -65,11 +99,10 @@ def main():
                         continue
 
                     try:
-                        df = yf.download(config["yfinance"], period="2d", progress=False)
-                        if df.empty or len(df) < 1:
+                        precio_salida = precio_cierre(config["yfinance"])
+                        if precio_salida is None:
                             continue
 
-                        precio_salida = float(df["Close"].iloc[-1])
                         precio_entrada = op["precio_entrada"]
                         accion = op["accion"]
 
@@ -107,12 +140,9 @@ def main():
             # Precio de cierre actual para cada ticker con predicción pendiente
             precios_actuales = {}
             for ticker, config in TICKERS.items():
-                try:
-                    df = yf.download(config["yfinance"], period="5d", progress=False)
-                    if not df.empty:
-                        precios_actuales[ticker] = float(df["Close"].iloc[-1])
-                except Exception:
-                    pass
+                precio = precio_cierre(config["yfinance"])
+                if precio is not None:
+                    precios_actuales[ticker] = precio
 
             res = db.evaluar_predicciones_pendientes(precios_actuales, umbral=UMBRAL)
             if res["evaluadas"]:
@@ -169,14 +199,9 @@ def main():
                 for ticker in predicciones:
                     config = TICKERS.get(ticker)
                     if config:
-                        try:
-                            df = yf.download(config["yfinance"], period="5d", progress=False)
-                            if not df.empty:
-                                cotizaciones[ticker] = {
-                                    "ultimoPrecio": float(df["Close"].iloc[-1])
-                                }
-                        except:
-                            pass
+                        precio = precio_cierre(config["yfinance"])
+                        if precio is not None:
+                            cotizaciones[ticker] = {"ultimoPrecio": precio}
 
                 # Guardar predicciones con su precio de referencia
                 db.guardar_predicciones_batch(predicciones, cotizaciones=cotizaciones)
