@@ -37,7 +37,9 @@ class IOLClient:
 
     # URLs base
     BASE_URL = "https://api.invertironline.com"
-    SANDBOX_URL = "https://api-sandbox.invertironline.com"
+    # Entorno de homologación (sandbox) de IOL. El host anterior
+    # (api-sandbox.invertironline.com) no existe; el real es api.homo.*
+    SANDBOX_URL = "https://api.homo.invertironline.com"
 
     def __init__(
         self,
