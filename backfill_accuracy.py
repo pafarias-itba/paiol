@@ -98,7 +98,7 @@ def main():
                              "filas ya evaluadas, para recomputarlas contra cierres finales")
     args = parser.parse_args()
 
-    load_dotenv()
+    load_dotenv(override=True)
     db = PaiolDB()
 
     if args.reset:

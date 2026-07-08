@@ -43,7 +43,7 @@ from features import PaiolFeatures, FEATURE_COLS, TICKERS
 from iol_client import IOLClient
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)  # el .env pisa exports viejos del shell (ej: keys vencidas)
 
 logging.basicConfig(
     level=logging.INFO,

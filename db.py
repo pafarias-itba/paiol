@@ -571,7 +571,7 @@ if __name__ == "__main__":
 
     elif args.test:
         from dotenv import load_dotenv
-        load_dotenv()
+        load_dotenv(override=True)
         db = PaiolDB()
         db.log_pipeline("test", "OK", "Conexión exitosa")
         logs = db._get("pipeline_logs", {"limit": 1, "order": "created_at.desc"})
@@ -582,7 +582,7 @@ if __name__ == "__main__":
 
     elif args.metricas:
         from dotenv import load_dotenv
-        load_dotenv()
+        load_dotenv(override=True)
         db = PaiolDB()
         metricas = db.get_metricas_paper_trading()
         print(json.dumps(metricas, indent=2))
