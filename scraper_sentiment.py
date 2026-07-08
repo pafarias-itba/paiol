@@ -251,7 +251,10 @@ class GeminiSentiment:
                 "o pasala al constructor."
             )
 
-        genai.configure(api_key=self.api_key)
+        # transport="rest": el SDK viejo usa gRPC por defecto y con las keys
+        # de formato nuevo (AQ.*) el backend rechaza esa vía con
+        # ACCESS_TOKEN_TYPE_UNSUPPORTED. Por REST la misma key funciona.
+        genai.configure(api_key=self.api_key, transport="rest")
         self.model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
     def analizar(self, noticias: list[Noticia]) -> dict:
