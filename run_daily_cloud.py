@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 
 import yfinance as yf
+import holidays
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,10 +68,13 @@ def main():
     logger.info(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info("=" * 60)
 
-    # Verificar día de semana (no correr sábado/domingo)
-    dia = datetime.now().weekday()
-    if dia >= 5:
-        logger.info("Fin de semana — no se opera. Saliendo.")
+    # No correr en fines de semana ni feriados: BYMA cerrado → no hay cierre
+    # ese día → las predicciones quedarían sin poder evaluarse nunca.
+    hoy = datetime.now().date()
+    feriados_ar = holidays.Argentina()
+    if hoy.weekday() >= 5 or hoy in feriados_ar:
+        motivo = "Fin de semana" if hoy.weekday() >= 5 else f"Feriado ({feriados_ar.get(hoy)})"
+        logger.info(f"{motivo} — no se opera. Saliendo.")
         return
 
     # Conectar a Supabase
