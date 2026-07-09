@@ -50,6 +50,10 @@ def precio_cierre(ticker_yf: str, reintentos: int = 3, espera: float = 3.0):
         try:
             df = yf.download(ticker_yf, period="5d", progress=False)
             if not df.empty:
+                # yfinance devuelve columns MultiIndex (('Close','GGAL.BA')):
+                # aplanar para que df["Close"] sea una Serie y float() funcione
+                if df.columns.nlevels > 1:
+                    df.columns = df.columns.get_level_values(0)
                 precio = float(df["Close"].iloc[-1])
                 _precio_cache[ticker_yf] = precio
                 return precio
