@@ -34,29 +34,41 @@ logger = logging.getLogger("PAIOL-Cloud")
 # ~15 llamadas a yfinance en 2 min → Yahoo devolvía vacío (rate-limit) y los
 # tickers quedaban "sin cotización". Ahora se descarga una vez y se reusa.
 _precio_cache: dict = {}
+_feriados_ar = holidays.Argentina()
 
 
 def precio_cierre(ticker_yf: str, reintentos: int = 3, espera: float = 3.0):
-    """Último cierre de yfinance, cacheado por corrida y con reintentos.
+    """Último cierre REAL de yfinance, cacheado por corrida y con reintentos.
 
-    Devuelve float o None. Solo cachea resultados exitosos: si falló, un paso
-    posterior puede reintentar (útil porque entre pasos pasa >1 min y el
-    rate-limit suele haberse reseteado).
+    Descarta barras de días sin rueda antes de tomar el cierre:
+    - volumen 0 (fines de semana / feriados "limpios")
+    - para tickers de BYMA (.BA), fechas que son feriado de Argentina (yfinance
+      a veces trae una barra CON volumen del ADR en EEUU en días que BYMA no
+      operó, ej. feriados con fines turísticos).
+
+    Devuelve float o None. Solo cachea resultados exitosos.
     """
     if _precio_cache.get(ticker_yf) is not None:
         return _precio_cache[ticker_yf]
 
+    es_byma = ticker_yf.endswith(".BA")
     for intento in range(reintentos):
         try:
-            df = yf.download(ticker_yf, period="5d", progress=False)
+            df = yf.download(ticker_yf, period="10d", progress=False)
             if not df.empty:
                 # yfinance devuelve columns MultiIndex (('Close','GGAL.BA')):
                 # aplanar para que df["Close"] sea una Serie y float() funcione
                 if df.columns.nlevels > 1:
                     df.columns = df.columns.get_level_values(0)
-                precio = float(df["Close"].iloc[-1])
-                _precio_cache[ticker_yf] = precio
-                return precio
+                # descartar barras sin rueda real
+                if "Volume" in df.columns:
+                    df = df[df["Volume"].fillna(0) > 0]
+                if es_byma and not df.empty:
+                    df = df[[d.date() not in _feriados_ar for d in df.index]]
+                if not df.empty:
+                    precio = float(df["Close"].iloc[-1])
+                    _precio_cache[ticker_yf] = precio
+                    return precio
         except Exception as e:
             logger.warning(f"  yfinance {ticker_yf} intento {intento + 1}: {e}")
         if intento < reintentos - 1:
