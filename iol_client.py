@@ -53,14 +53,25 @@ class IOLClient:
             password: Contraseña de IOL (o env var IOL_PASSWORD)
             sandbox: True para usar entorno de pruebas
         """
-        self.username = username or os.environ.get("IOL_USERNAME")
-        self.password = password or os.environ.get("IOL_PASSWORD")
-
-        if not self.username or not self.password:
-            raise ValueError(
-                "Credenciales requeridas. Seteá IOL_USERNAME e IOL_PASSWORD "
-                "como variables de entorno o pasalas al constructor."
-            )
+        # Credenciales separadas por entorno: sandbox usa IOL_SANDBOX_* y
+        # producción usa IOL_*. Así las credenciales de plata real nunca se
+        # usan para pruebas (ni al revés).
+        if sandbox:
+            self.username = username or os.environ.get("IOL_SANDBOX_USERNAME")
+            self.password = password or os.environ.get("IOL_SANDBOX_PASSWORD")
+            if not self.username or not self.password:
+                raise ValueError(
+                    "Modo sandbox: configurá IOL_SANDBOX_USERNAME e "
+                    "IOL_SANDBOX_PASSWORD (separadas de las de producción)."
+                )
+        else:
+            self.username = username or os.environ.get("IOL_USERNAME")
+            self.password = password or os.environ.get("IOL_PASSWORD")
+            if not self.username or not self.password:
+                raise ValueError(
+                    "Credenciales requeridas. Seteá IOL_USERNAME e IOL_PASSWORD "
+                    "como variables de entorno o pasalas al constructor."
+                )
 
         self.base_url = self.SANDBOX_URL if sandbox else self.BASE_URL
         self.sandbox = sandbox
@@ -388,6 +399,17 @@ class IOLClient:
         Returns:
             dict con resultado de la orden, o None si es hold
         """
+        # Guarda anti-plata-real: en producción (no sandbox) se exige un flag
+        # explícito IOL_ALLOW_REAL=true. Evita mandar órdenes reales por error
+        # (ej. un dry_run mal seteado o IOL_SANDBOX en false sin querer).
+        if not self.sandbox and os.environ.get("IOL_ALLOW_REAL", "").lower() != "true":
+            logger.error(
+                "PRODUCCIÓN (plata real) sin IOL_ALLOW_REAL=true — orden de %s "
+                "BLOQUEADA. Seteá IOL_ALLOW_REAL=true solo cuando quieras operar "
+                "en serio.", ticker
+            )
+            return None
+
         if senal == 2:  # SUBE → Comprar
             logger.info("SEÑAL COMPRA para %s", ticker)
             return self.comprar(ticker, mercado, cantidad, precio)
