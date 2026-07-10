@@ -72,8 +72,9 @@ def main():
     logger.info(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info("=" * 60)
 
-    # No correr en fines de semana ni feriados: BYMA cerrado → no hay cierre
-    # ese día → las predicciones quedarían sin poder evaluarse nunca.
+    # No correr en fines de semana ni feriados: BYMA cerrado (incluidos los
+    # "feriados con fines turísticos", que también cierran el mercado) → no hay
+    # rueda ese día → las predicciones quedarían sin poder evaluarse nunca.
     hoy = datetime.now().date()
     feriados_ar = holidays.Argentina()
     if hoy.weekday() >= 5 or hoy in feriados_ar:

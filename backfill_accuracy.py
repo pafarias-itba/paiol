@@ -55,6 +55,11 @@ def descargar_historico(symbol: str, fecha_min: str) -> pd.DataFrame:
     # yfinance a veces devuelve columnas MultiIndex para un solo ticker
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
+    # Descartar barras "fantasma" de días sin rueda (feriados): yfinance las
+    # devuelve con volumen 0 y el cierre anterior repetido. Evaluar contra
+    # ellas daría un retorno 0% falso.
+    if "Volume" in df.columns:
+        df = df[df["Volume"].fillna(0) > 0]
     return df
 
 
