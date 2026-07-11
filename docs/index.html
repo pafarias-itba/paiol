@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAIOL — Paper Trading</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1115; --card: #1a1d24; --border: #2a2e37;
+      --txt: #e6e8eb; --muted: #9aa0aa;
+      --green: #34c759; --red: #ff453a; --accent: #5b8def;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--txt);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 16px; max-width: 900px; margin: 0 auto; line-height: 1.5;
+    }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+    h1 { font-size: 20px; font-weight: 600; }
+    h1 span { color: var(--accent); }
+    .sub { color: var(--muted); font-size: 13px; }
+    button {
+      background: var(--card); color: var(--txt); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 14px; font-size: 14px; cursor: pointer;
+    }
+    button:active { transform: scale(0.97); }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (min-width: 620px) { .cards { grid-template-columns: repeat(4, 1fr); } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .card .label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .card .value { font-size: 22px; font-weight: 600; }
+    .pos { color: var(--green); } .neg { color: var(--red); }
+    section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    section h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .chart-wrap { position: relative; height: 260px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: right; padding: 8px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--muted); font-weight: 500; }
+    .table-scroll { overflow-x: auto; }
+    .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 0; }
+    footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1><span>PAIOL</span> · Paper Trading</h1>
+      <div class="sub" id="updated">Cargando…</div>
+    </div>
+    <button onclick="cargar()">Actualizar</button>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="label">P&amp;L total</div><div class="value" id="pnl">—</div></div>
+    <div class="card"><div class="label">Win rate</div><div class="value" id="winrate">—</div></div>
+    <div class="card"><div class="label">Accuracy modelo</div><div class="value" id="accuracy">—</div></div>
+    <div class="card"><div class="label">Posiciones abiertas</div><div class="value" id="abiertas">—</div></div>
+  </div>
+
+  <section>
+    <h2>P&amp;L acumulado</h2>
+    <div class="chart-wrap"><canvas id="equity"></canvas></div>
+    <div class="empty" id="equity-empty" style="display:none">Sin operaciones cerradas todavía.</div>
+  </section>
+
+  <section>
+    <h2>P&amp;L por ticker</h2>
+    <div class="chart-wrap"><canvas id="porTicker"></canvas></div>
+    <div class="empty" id="ticker-empty" style="display:none">Sin datos todavía.</div>
+  </section>
+
+  <section>
+    <h2>Últimas operaciones</h2>
+    <div class="table-scroll">
+      <table id="tabla">
+        <thead><tr><th>Fecha</th><th>Ticker</th><th>Acción</th><th>Entrada</th><th>Salida</th><th>P&amp;L</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="empty" id="tabla-empty" style="display:none">Todavía no hay operaciones. Aparecen cuando el modelo abra la primera. 🙂</div>
+  </section>
+
+  <footer>PAIOL · datos de Supabase · plata ficticia (paper trading)</footer>
+
+  <script>
+    const SUPABASE_URL = "https://mbkuhlhivvhavdnlvqnk.supabase.co";
+    const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ia3VobGhpdnZoYXZkbmx2cW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMjYzMjAsImV4cCI6MjA5ODgwMjMyMH0.0sy6VI0NKz6fPEHYi5FrYYosy1sAHZA4TwPdahDMalU";
+    const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+    let chEquity, chTicker;
+
+    const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+    const pct = x => (x * 100).toFixed(1) + "%";
+    const cls = x => x > 0 ? "pos" : (x < 0 ? "neg" : "");
+    const signo = x => (x >= 0 ? "+" : "") + fmt.format(x);
+
+    async function q(tabla, params) {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${tabla}?${params}`, { headers: H });
+      if (!r.ok) throw new Error(tabla + ": " + r.status);
+      return r.json();
+    }
+
+    async function cargar() {
+      document.getElementById("updated").textContent = "Cargando…";
+      try {
+        const ops = await q("operaciones", "select=*&order=fecha.asc");
+        const preds = await q("predicciones", "acierto=not.is.null&select=acierto");
+        render(ops, preds);
+        const ahora = new Date().toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        document.getElementById("updated").textContent = "Actualizado " + ahora;
+      } catch (e) {
+        document.getElementById("updated").textContent = "Error: " + e.message;
+      }
+    }
+
+    function render(ops, preds) {
+      const cerradas = ops.filter(o => o.cerrada);
+      const abiertas = ops.filter(o => !o.cerrada);
+
+      const pnlTotal = cerradas.reduce((s, o) => s + (o.pnl || 0), 0);
+      const gan = cerradas.filter(o => (o.pnl || 0) > 0).length;
+      const winrate = cerradas.length ? gan / cerradas.length : 0;
+      const acc = preds.length ? preds.filter(p => p.acierto).length / preds.length : null;
+
+      const elPnl = document.getElementById("pnl");
+      elPnl.textContent = cerradas.length ? signo(pnlTotal) : "—";
+      elPnl.className = "value " + cls(pnlTotal);
+      document.getElementById("winrate").textContent = cerradas.length ? pct(winrate) : "—";
+      document.getElementById("accuracy").textContent = acc === null ? "—" : pct(acc);
+      document.getElementById("abiertas").textContent = abiertas.length;
+
+      // Equity curve (P&L acumulado sobre cerradas, por fecha de cierre)
+      const porFecha = [...cerradas].sort((a, b) => (a.fecha_cierre || a.fecha).localeCompare(b.fecha_cierre || b.fecha));
+      let acum = 0;
+      const labels = [], data = [];
+      porFecha.forEach(o => { acum += (o.pnl || 0); labels.push(o.fecha_cierre || o.fecha); data.push(Math.round(acum)); });
+      toggle("equity", porFecha.length > 0);
+      if (porFecha.length) lineChart(labels, data);
+
+      // P&L por ticker
+      const map = {};
+      cerradas.forEach(o => { map[o.ticker] = (map[o.ticker] || 0) + (o.pnl || 0); });
+      const tk = Object.keys(map);
+      toggle("ticker", tk.length > 0);
+      if (tk.length) barChart(tk, tk.map(t => Math.round(map[t])));
+
+      // Tabla últimas
+      const tbody = document.querySelector("#tabla tbody");
+      tbody.innerHTML = "";
+      const ultimas = [...ops].reverse().slice(0, 15);
+      document.getElementById("tabla-empty").style.display = ops.length ? "none" : "block";
+      ultimas.forEach(o => {
+        const p = o.pnl;
+        tbody.insertAdjacentHTML("beforeend",
+          `<tr><td>${o.fecha}</td><td>${o.ticker}</td><td>${o.accion}</td>` +
+          `<td>${o.precio_entrada != null ? fmt.format(o.precio_entrada) : "—"}</td>` +
+          `<td>${o.precio_salida != null ? fmt.format(o.precio_salida) : "—"}</td>` +
+          `<td class="${p != null ? cls(p) : ""}">${p != null ? signo(p) : "abierta"}</td></tr>`);
+      });
+    }
+
+    function toggle(name, hayDatos) {
+      document.getElementById(name + "-empty").style.display = hayDatos ? "none" : "block";
+      document.getElementById(name === "equity" ? "equity" : "porTicker").style.display = hayDatos ? "block" : "none";
+    }
+
+    const grid = "#2a2e37", tick = "#9aa0aa";
+    function lineChart(labels, data) {
+      if (chEquity) chEquity.destroy();
+      chEquity = new Chart(document.getElementById("equity"), {
+        type: "line",
+        data: { labels, datasets: [{ data, borderColor: "#5b8def", backgroundColor: "rgba(91,141,239,.15)", fill: true, tension: .25, pointRadius: 2 }] },
+        options: baseOpts()
+      });
+    }
+    function barChart(labels, data) {
+      if (chTicker) chTicker.destroy();
+      chTicker = new Chart(document.getElementById("porTicker"), {
+        type: "bar",
+        data: { labels, datasets: [{ data, backgroundColor: data.map(v => v >= 0 ? "#34c759" : "#ff453a") }] },
+        options: baseOpts()
+      });
+    }
+    function baseOpts() {
+      return {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: grid }, ticks: { color: tick, maxRotation: 0, autoSkip: true } },
+          y: { grid: { color: grid }, ticks: { color: tick } }
+        }
+      };
+    }
+
+    cargar();
+  </script>
+</body>
+</html>
