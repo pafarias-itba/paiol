@@ -229,7 +229,8 @@ def main():
                 logger.info("  ✅ Predicciones guardadas")
 
                 # Position sizing
-                pm = PositionManager(capital_total=100_000, riesgo_pct=0.02)
+                capital = float(os.environ.get("PAIOL_CAPITAL", "1000000"))
+                pm = PositionManager(capital_total=capital, riesgo_pct=0.02)
                 ordenes = pm.calcular_todas(predicciones, cotizaciones)
 
                 # Guardar operaciones abiertas
