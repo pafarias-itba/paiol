@@ -60,6 +60,9 @@ def precio_cierre(ticker_yf: str, reintentos: int = 3, espera: float = 3.0):
                 # aplanar para que df["Close"] sea una Serie y float() funcione
                 if df.columns.nlevels > 1:
                     df.columns = df.columns.get_level_values(0)
+                # descartar barras sin cierre válido (yfinance a veces devuelve
+                # NaN en la barra pre-mercado a medio formar, ej. SPY)
+                df = df[df["Close"].notna()]
                 # descartar barras sin rueda real
                 if "Volume" in df.columns:
                     df = df[df["Volume"].fillna(0) > 0]
