@@ -233,7 +233,9 @@ def main():
 
                 # Position sizing
                 capital = float(os.environ.get("PAIOL_CAPITAL", "1000000"))
-                pm = PositionManager(capital_total=capital, riesgo_pct=0.02)
+                conf_min = float(os.environ.get("PAIOL_CONFIANZA_MINIMA", "0.42"))
+                pm = PositionManager(capital_total=capital, riesgo_pct=0.02,
+                                     confianza_minima=conf_min)
                 ordenes = pm.calcular_todas(predicciones, cotizaciones)
 
                 # Guardar operaciones abiertas
