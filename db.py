@@ -363,6 +363,50 @@ class PaiolDB:
         })
 
     # ================================================================
+    # NOTICIAS (corpus individual — tesis)
+    # ================================================================
+
+    def guardar_noticias_batch(self, noticias: list) -> int:
+        """Inserta noticias nuevas; ignora las ya existentes (dedup por link).
+
+        Usa resolution=ignore-duplicates para NO pisar filas ya guardadas
+        (clave: una noticia ya etiquetada a mano no se debe sobreescribir).
+
+        Args:
+            noticias: lista de dicts con las columnas de la tabla `noticias`.
+
+        Returns:
+            Cantidad de filas enviadas (no distingue nuevas de duplicadas).
+        """
+        if not noticias:
+            return 0
+        url = f"{self.url}/rest/v1/noticias"
+        headers = {**self.headers,
+                   "Prefer": "return=minimal,resolution=ignore-duplicates"}
+        try:
+            resp = requests.post(url, headers=headers,
+                                 params={"on_conflict": "link"}, json=noticias)
+            if resp.status_code in (200, 201, 204):
+                return len(noticias)
+            logger.error(f"DB noticias: {resp.status_code} {resp.text[:200]}")
+            return 0
+        except Exception as e:
+            logger.error(f"DB noticias error: {e}")
+            return 0
+
+    def contar_noticias(self) -> int:
+        """Total de noticias en el corpus (para ver cómo va creciendo)."""
+        url = f"{self.url}/rest/v1/noticias"
+        headers = {**self.headers, "Prefer": "count=exact", "Range": "0-0"}
+        try:
+            resp = requests.get(url, headers=headers, params={"select": "id"})
+            rango = resp.headers.get("content-range", "*/0")
+            return int(rango.split("/")[-1])
+        except Exception as e:
+            logger.error(f"DB contar_noticias error: {e}")
+            return 0
+
+    # ================================================================
     # OPERACIONES (PAPER TRADING)
     # ================================================================
 

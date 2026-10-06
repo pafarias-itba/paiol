@@ -1,0 +1,39 @@
+name: Scraper de noticias (tesis)
+
+# Recolecta el corpus de noticias 2x/día, todos los días.
+# Los horarios de cron son en UTC:
+#   11:00 UTC = 08:00 ART
+#   23:00 UTC = 20:00 ART
+on:
+  schedule:
+    - cron: "0 11,23 * * *"
+  workflow_dispatch: {}      # permite correrlo a mano desde la pestaña Actions
+
+# Evita que dos corridas se pisen si una se demora
+concurrency:
+  group: scraper-noticias
+  cancel-in-progress: false
+
+jobs:
+  recolectar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout del repo
+        uses: actions/checkout@v4
+
+      - name: Preparar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Correr el scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scraper_noticias.py
