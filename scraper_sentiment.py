@@ -55,7 +55,9 @@ RSS_FEEDS = {
     "cronista": "https://www.cronista.com/files/rss/news.xml",
 
     # Infobae — sección economía
-    "infobae_economia": "https://www.infobae.com/feeds/rss/economia/",
+    # El feed viejo (/feeds/rss/economia/) devuelve 404 desde ~jul-2026 (migraron
+    # a Arc). El outboundfeed nuevo devuelve ~100 notas. Corregido 2026-10-10.
+    "infobae_economia": "https://www.infobae.com/arc/outboundfeeds/rss/category/economia/?outputType=xml",
 
     # El Economista Argentina — finanzas
     "eleconomista_economia": "https://eleconomista.com.ar/economia/feed/",
