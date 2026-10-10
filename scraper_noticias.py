@@ -3,15 +3,16 @@ PAIOL — Recolector de NOTICIAS individuales (corpus para la tesis)
 
 A diferencia de `scraper_sentiment.py` (que manda un lote a Gemini y guarda
 sólo el sentimiento AGREGADO del día), este módulo guarda CADA noticia con:
-  - titulo, resumen, medio, link, fecha_publicacion
+  - titulo, resumen, medio, seccion, link, fecha_publicacion
   - empresas mencionadas (GGAL/YPFD/PAMP/MELI)         -> H2/H3
   - flag de jerga económica local (cepo/brecha/CCL...) -> H1
   - sentimiento del titular según Gemini (-1..1)       -> H1
-  - es_cotizacion: marca notas de precio ("a cuánto cotiza...") para excluirlas
-    del análisis causal (describen el precio -> serían circulares)
+  - es_cotizacion: notas de precio ("a cuánto cotiza...") -> excluir (circular)
+  - es_patrocinado: contenido pagado (cronista brand-strategy, etc.) -> excluir
 
-Reusa el RSSscraper existente. Suma secciones de negocios/energía (donde aparecen
-las empresas) además de las fuentes del pipeline de trading.
+Las secciones se eligieron con evidencia GDELT 2024 (ver datos_gdelt): se leen las
+secciones donde aparecieron las notas sobre GGAL/YPF/Pampa (negocios, energía,
+economía-política), apuntando a ~80% de cobertura por medio.
 
 Eficiencia: antes de clasificar con Gemini saltea los links ya guardados, así
 correr seguido no re-clasifica lo mismo (permite subir la frecuencia barato).
@@ -51,30 +52,71 @@ logger = logging.getLogger("PAIOL-Noticias")
 
 
 # ================================================================
-# FUENTES — las del trading (RSS_FEEDS) + secciones de negocios/energía
+# FUENTES — elegidas por evidencia GDELT 2024 (secciones con notas de empresa)
 # ================================================================
-# Las empresas (GGAL/YPFD/PAMP) aparecen sobre todo en negocios y energía, que
-# el pipeline de trading no lee. Se suman sólo acá para enriquecer el corpus.
-# Todas verificadas (responden y traen ítems) el 2026-10-10.
+# Objetivo: ~80% de las notas sobre GGAL/YPF/Pampa por medio. Las empresas
+# aparecen sobre todo en energía, negocios y economía-política, que el pipeline
+# de trading no lee. Se suman sólo acá. Todas verificadas (responden + ítems) 2026-10-10.
 
 NOTICIAS_FEEDS = {
-    **RSS_FEEDS,
-    "ambito_negocios":       "https://www.ambito.com/rss/pages/negocios.xml",
-    "ambito_energia":        "https://www.ambito.com/rss/pages/energia.xml",
-    "cronista_negocios":     "https://www.cronista.com/files/rss/negocios.xml",
-    "iprofesional_negocios": "https://www.iprofesional.com/rss/negocios",
-    "iprofesional_finanzas": "https://www.iprofesional.com/rss/finanzas",
-    "iprofesional_energia":  "https://www.iprofesional.com/rss/energia",
-    "eleconomista_negocios": "https://eleconomista.com.ar/negocios/feed/",
-    "eleconomista_energia":  "https://eleconomista.com.ar/energia/feed/",
+    **RSS_FEEDS,  # trading: ambito economia/finanzas/politica, cronista (news.xml),
+                  # infobae_economia, eleconomista economia/finanzas, iprofesional (economia)
+    # ámbito — clave: energia (63/104); + negocios, economia (ya en RSS_FEEDS)
+    "ambito_negocios":           "https://www.ambito.com/rss/pages/negocios.xml",
+    "ambito_energia":            "https://www.ambito.com/rss/pages/energia.xml",
+    # cronista — economia-politica (81) y negocios (60); finanzas-mercados no tiene RSS
+    "cronista_negocios":         "https://www.cronista.com/files/rss/negocios.xml",
+    "cronista_economia-politica": "https://www.cronista.com/files/rss/economia-politica.xml",
+    # eleconomista — clave: energia (35/67); + economia (RSS_FEEDS), politica
+    "eleconomista_negocios":     "https://eleconomista.com.ar/negocios/feed/",
+    "eleconomista_energia":      "https://eleconomista.com.ar/energia/feed/",
+    "eleconomista_politica":     "https://eleconomista.com.ar/politica/feed/",
+    # iprofesional — negocios (44), economia (RSS_FEEDS), actualidad (21), finanzas (16)
+    "iprofesional_negocios":     "https://www.iprofesional.com/rss/negocios",
+    "iprofesional_finanzas":     "https://www.iprofesional.com/rss/finanzas",
+    "iprofesional_actualidad":   "https://www.iprofesional.com/rss/actualidad",
+    # iprofesional_energia: GDELT 2024 no lo registra, pero en vivo trae notas de YPF.
+    "iprofesional_energia":      "https://www.iprofesional.com/rss/energia",
+}
+
+# feed_key -> (medio, seccion). Para guardarlos separados y poder medir secciones.
+FEED_META = {
+    "ambito_economia": ("ambito", "economia"),
+    "ambito_finanzas": ("ambito", "finanzas"),
+    "ambito_politica": ("ambito", "politica"),
+    "ambito_negocios": ("ambito", "negocios"),
+    "ambito_energia": ("ambito", "energia"),
+    "cronista": ("cronista", "general"),
+    "cronista_negocios": ("cronista", "negocios"),
+    "cronista_economia-politica": ("cronista", "economia-politica"),
+    "infobae_economia": ("infobae", "economia"),
+    "eleconomista_economia": ("eleconomista", "economia"),
+    "eleconomista_finanzas": ("eleconomista", "finanzas"),
+    "eleconomista_negocios": ("eleconomista", "negocios"),
+    "eleconomista_energia": ("eleconomista", "energia"),
+    "eleconomista_politica": ("eleconomista", "politica"),
+    "iprofesional": ("iprofesional", "economia"),
+    "iprofesional_negocios": ("iprofesional", "negocios"),
+    "iprofesional_finanzas": ("iprofesional", "finanzas"),
+    "iprofesional_actualidad": ("iprofesional", "actualidad"),
+    "iprofesional_energia": ("iprofesional", "energia"),
 }
 
 
+def medio_y_seccion(feed_key: str):
+    """(medio, seccion) desde la clave del feed. Fallback: split por el primer '_'."""
+    if feed_key in FEED_META:
+        return FEED_META[feed_key]
+    if "_" in feed_key:
+        m, s = feed_key.split("_", 1)
+        return m, s
+    return feed_key, "general"
+
+
 # ================================================================
-# TAGGEO DETERMINÍSTICO (empresa + jerga + cotización)
+# TAGGEO DETERMINÍSTICO (empresa / jerga / cotización / patrocinado)
 # ================================================================
-# Se hace por keywords (no con el LLM) a propósito: es reproducible y auditable,
-# algo deseable para la tesis. La lista se puede refinar sin re-scrapear.
+# Por keywords (no LLM) a propósito: reproducible y auditable para la tesis.
 
 EMPRESAS_KEYWORDS = {
     "GGAL": [r"ggal", r"galicia", r"grupo financiero galicia", r"banco galicia"],
@@ -90,10 +132,19 @@ JERGA_LOCAL = [
     "riesgo país", "riesgo pais", "pase pasivo", "dólar soja", "dolar soja",
 ]
 
-# Notas automáticas de cotización: describen el precio ("a cuánto cotiza/abre/cerró
-# el dólar hoy", URLs de /cotizacion/). Usarlas para explicar retornos sería circular.
+# Cotizaciones automáticas: describen el precio -> usarlas para explicar retornos
+# sería circular.
 COTIZACION_TITULO = re.compile(
     r"a\s+cu[áa]nto\s+(cotiza|cotiz[óo]|abre|abri[óo]|cierra|cerr[óo]|opera|oper[óo])",
+    re.IGNORECASE,
+)
+
+# Contenido patrocinado (pagado por las empresas, no periodístico). Se detecta por la
+# sección en la URL. Según GDELT 2024 el único caso real es cronista "brand-strategy";
+# el resto queda como red defensiva por si aparecen en algún feed general.
+PATROCINADO_URL = re.compile(
+    r"/(brand-strategy|contenido-patrocinado|branded|publinota|"
+    r"espacio-no-editorial|sponsor|publicidad)/",
     re.IGNORECASE,
 )
 
@@ -111,8 +162,7 @@ def detectar_empresas(texto: str) -> list:
 
 
 def tiene_jerga(texto: str) -> bool:
-    t = texto.lower()
-    return any(j in t for j in JERGA_LOCAL)
+    return any(j in texto.lower() for j in JERGA_LOCAL)
 
 
 def es_cotizacion(titulo: str, link: str = "") -> bool:
@@ -122,6 +172,11 @@ def es_cotizacion(titulo: str, link: str = "") -> bool:
     if link and "/cotizacion/" in link.lower():
         return True
     return False
+
+
+def es_patrocinado(link: str = "") -> bool:
+    """True si la nota es contenido patrocinado/pagado (por la sección en la URL)."""
+    return bool(link and PATROCINADO_URL.search(link))
 
 
 def parsear_fecha(fecha_str: str):
@@ -138,27 +193,37 @@ def parsear_fecha(fecha_str: str):
         return None
 
 
-def construir_fila(noticia, sentimiento, fecha_scrape: str, incluir_cotizacion: bool = True) -> dict:
+def construir_fila(noticia, sentimiento, fecha_scrape: str, extras=frozenset()) -> dict:
     """Arma el dict de una noticia listo para insertar en Supabase.
 
-    Clave: `empresas` queda como LISTA de Python (no string). requests serializa
-    el body a JSON, así que llega como array JSONB. Hacerle json.dumps() acá la
-    guardaría doble-codificada (bug corregido 2026-10-10).
+    `extras` = columnas opcionales que EXISTEN en la tabla (seccion, es_cotizacion,
+    es_patrocinado); se incluyen sólo si están, para no romper si falta la migración.
+
+    Clave: `empresas` queda como LISTA (no json.dumps) -> array JSONB. Si todavía no
+    existe la columna `seccion`, se guarda el feed_key completo en `medio` para no
+    perder info (la migración después lo separa).
     """
     texto = f"{noticia.titulo} {noticia.resumen}"
+    medio, seccion = medio_y_seccion(noticia.fuente)
     fila = {
         "link": noticia.link,
         "titulo": noticia.titulo,
         "resumen": noticia.resumen,
-        "medio": noticia.fuente,
         "fecha_publicacion": parsear_fecha(noticia.fecha),
         "fecha_scrape": fecha_scrape,
         "empresas": detectar_empresas(texto),   # LISTA, no json.dumps
         "jerga_local": tiene_jerga(texto),
         "sentimiento_gemini": sentimiento,
     }
-    if incluir_cotizacion:
+    if "seccion" in extras:
+        fila["medio"] = medio
+        fila["seccion"] = seccion
+    else:
+        fila["medio"] = noticia.fuente          # preserva info si falta la columna
+    if "es_cotizacion" in extras:
         fila["es_cotizacion"] = es_cotizacion(noticia.titulo, noticia.link)
+    if "es_patrocinado" in extras:
+        fila["es_patrocinado"] = es_patrocinado(noticia.link)
     return fila
 
 
@@ -179,14 +244,18 @@ def links_ya_guardados(db, dias: int = 3) -> set:
         return set()
 
 
-def columna_existe(db, col: str) -> bool:
-    """True si la columna existe en `noticias` (para degradar sin romper)."""
-    try:
-        r = requests.get(f"{db.url}/rest/v1/noticias", headers=db.headers,
-                         params={"select": col, "limit": "0"})
-        return r.status_code == 200
-    except Exception:
-        return False
+def columnas_opcionales(db) -> set:
+    """Cuáles de las columnas opcionales existen ya en `noticias`."""
+    presentes = set()
+    for col in ("seccion", "es_cotizacion", "es_patrocinado"):
+        try:
+            r = requests.get(f"{db.url}/rest/v1/noticias", headers=db.headers,
+                             params={"select": col, "limit": "0"})
+            if r.status_code == 200:
+                presentes.add(col)
+        except Exception:
+            pass
+    return presentes
 
 
 # ================================================================
@@ -265,7 +334,7 @@ def recolectar(con_sentimiento: bool = True) -> dict:
     logger.info("=== PAIOL — Recolector de noticias ===")
     db = PaiolDB()
 
-    # 1. Scrape (fuentes del trading + secciones de negocios/energía)
+    # 1. Scrape (fuentes del trading + secciones de negocios/energía/economía-política)
     noticias = RSSscraper(feeds=NOTICIAS_FEEDS).scrape_relevantes()
     if not noticias:
         logger.warning("Sin noticias relevantes en esta corrida.")
@@ -285,28 +354,24 @@ def recolectar(con_sentimiento: bool = True) -> dict:
         logger.info(f"Clasificando sentimiento de {len(nuevas)} titulares...")
         sentimientos = SentimentPorTitular().clasificar(nuevas)
 
-    # 4. Armar filas (degradar si falta la columna es_cotizacion)
-    incluir_cotiz = columna_existe(db, "es_cotizacion")
-    if not incluir_cotiz:
-        logger.warning("Falta la columna es_cotizacion — corré migracion_es_cotizacion.sql. "
-                       "Guardo sin esa marca por ahora.")
+    # 4. Armar filas (incluye sólo las columnas opcionales que existan)
+    extras = columnas_opcionales(db)
+    faltan = {"seccion", "es_cotizacion", "es_patrocinado"} - extras
+    if faltan:
+        logger.warning(f"Faltan columnas {sorted(faltan)} — corré sus migraciones. "
+                       "Guardo sin esas marcas por ahora.")
     hoy = datetime.now().strftime("%Y-%m-%d")
-    filas = [construir_fila(n, sentimientos.get(i), hoy, incluir_cotiz)
+    filas = [construir_fila(n, sentimientos.get(i), hoy, extras)
              for i, n in enumerate(nuevas)]
 
     # 5. Persistir (ignora duplicados por link, por las dudas)
     enviadas = db.guardar_noticias_batch(filas)
     con_empresa = sum(1 for f in filas if f["empresas"])
-    con_jerga = sum(1 for f in filas if f["jerga_local"])
-    cotiz = sum(1 for f in filas if f.get("es_cotizacion")) if incluir_cotiz else 0
     total = db.contar_noticias()
-
-    logger.info(f"Guardadas {enviadas} noticias nuevas "
-                f"({con_empresa} con empresa, {con_jerga} con jerga, {cotiz} cotización)")
+    logger.info(f"Guardadas {enviadas} noticias nuevas ({con_empresa} con empresa)")
     logger.info(f"Corpus total acumulado: {total} noticias")
     return {"scrapeadas": len(noticias), "nuevas": len(nuevas), "guardadas": enviadas,
-            "con_empresa": con_empresa, "con_jerga": con_jerga,
-            "cotizacion": cotiz, "corpus_total": total}
+            "con_empresa": con_empresa, "corpus_total": total}
 
 
 if __name__ == "__main__":
