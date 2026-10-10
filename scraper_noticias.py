@@ -199,14 +199,14 @@ def recolectar(con_sentimiento: bool = True) -> dict:
             "medio": n.fuente,
             "fecha_publicacion": parsear_fecha(n.fecha),
             "fecha_scrape": hoy,
-            "empresas": json.dumps(detectar_empresas(texto)),
+            "empresas": detectar_empresas(texto),
             "jerga_local": tiene_jerga(texto),
             "sentimiento_gemini": sentimientos.get(i),
         })
 
     # 4. Persistir (ignora duplicados por link)
     enviadas = db.guardar_noticias_batch(filas)
-    con_empresa = sum(1 for f in filas if json.loads(f["empresas"]))
+    con_empresa = sum(1 for f in filas if f["empresas"])
     con_jerga = sum(1 for f in filas if f["jerga_local"])
     total = db.contar_noticias()
 
